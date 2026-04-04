@@ -33,7 +33,7 @@ export default async function handler(req) {
     // ── GET campuses ──
     if (action === 'campuses') {
       const res = await fetch(
-        `${airtableBase}/Campuses?fields[]=Campus+Name&fields[]=Shipping+address&fields[]=School+Phone&sort[0][field]=Campus+Name&sort[0][direction]=asc`,
+        `${airtableBase}/tblYsJZuNZSID8FxM?fields[]=Campus+Name&fields[]=Shipping+address&fields[]=School+Phone&sort[0][field]=Campus+Name&sort[0][direction]=asc`,
         { headers }
       );
       const data = await res.json();
@@ -43,7 +43,7 @@ export default async function handler(req) {
     // ── GET device models ──
     if (action === 'devices') {
       const res = await fetch(
-        `${airtableBase}/Device+Models?fields[]=Device+Name&fields[]=Notes&fields[]=Active&sort[0][field]=Device+Name&sort[0][direction]=asc`,
+        `${airtableBase}/tblLb4uhTKUGTF08j?fields[]=Device+Name&fields[]=Notes&fields[]=Active&sort[0][field]=Device+Name&sort[0][direction]=asc`,
         { headers }
       );
       const data = await res.json();
@@ -53,7 +53,7 @@ export default async function handler(req) {
     // ── POST submission ──
     if (action === 'submit' && req.method === 'POST') {
       const body = await req.json();
-      const res = await fetch(`${airtableBase}/Device+Requests`, {
+      const res = await fetch(`${airtableBase}/tbltPRglMnBmUa0D1`, {
         method: 'POST',
         headers,
         body: JSON.stringify(body)
