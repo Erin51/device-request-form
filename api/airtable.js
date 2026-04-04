@@ -59,8 +59,10 @@ export default async function handler(req) {
         body: JSON.stringify(body)
       });
       const data = await res.json();
-      return new Response(JSON.stringify(data), {
-        status: res.ok ? 200 : 400,
+      // always return 200 so browser network tab shows the response,
+      // but include ok:false and the full Airtable error if it failed
+      return new Response(JSON.stringify({ ok: res.ok, status: res.status, data }), {
+        status: 200,
         headers: cors
       });
     }
