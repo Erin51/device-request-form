@@ -433,7 +433,8 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ fields })
       });
-      if (!res.ok) throw new Error();
+      const result = await res.json();
+      if (!result.ok) throw new Error(JSON.stringify(result.data));
       document.getElementById('form-view').style.display = 'none';
       document.getElementById('success-view').style.display = 'block';
       const d = new Date(document.getElementById('needed-by').value + 'T12:00:00');
