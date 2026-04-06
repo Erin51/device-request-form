@@ -133,9 +133,9 @@
           <div class="section-title">Device details</div>
           <div class="field">
             <label>Device type <span class="req">*</span></label>
-            <div class="radio-group" id="device-type-group">
-              <!-- populated by loadDeviceModels() -->
-            </div>
+            <select id="device-type-select">
+              <option value="">Select a device…</option>
+            </select>
           </div>
           <div class="field">
             <label>Use case <span class="req">*</span></label>
@@ -285,13 +285,13 @@
   ];
 
   function renderDeviceOptions(devices) {
-    const group = document.getElementById('device-type-group');
-    group.innerHTML = '';
+    const sel = document.getElementById('device-type-select');
+    sel.innerHTML = '<option value="">Select a device…</option>';
     devices.forEach(d => {
-      const label = document.createElement('label');
-      label.className = 'radio-opt';
-      label.innerHTML = `<input type="radio" name="device-type" value="${d.name}"><div class="opt-text">${d.name}${d.notes ? `<div class="opt-sub">${d.notes}</div>` : ''}</div>`;
-      group.appendChild(label);
+      const opt = document.createElement('option');
+      opt.value = d.name;
+      opt.textContent = d.name;
+      sel.appendChild(opt);
     });
   }
 
@@ -388,7 +388,7 @@
     const q = parseInt(document.getElementById('quantity').value) || 0;
     if (!campus || !document.getElementById('contact-name').value.trim()) return false;
     if (!document.getElementById('contact-email').value.trim()) return false;
-    if (!document.querySelector('input[name="device-type"]:checked')) return false;
+    if (!document.getElementById('device-type-select').value) return false;
     if (!document.getElementById('use-case').value) return false;
     if (!document.getElementById('quantity').value || !document.getElementById('needed-by').value) return false;
     if (!document.getElementById('confirm-check').checked) return false;
@@ -438,7 +438,7 @@
 
     const campus = document.getElementById('campus').value || (document.getElementById('campus-text-fallback') && document.getElementById('campus-text-fallback').value) || '';
     const q = parseInt(document.getElementById('quantity').value) || 0;
-    const deviceType = document.querySelector('input[name="device-type"]:checked').value;
+    const deviceType = document.getElementById('device-type-select').value;
 
     const fields = {
       'Campus name':        campus,
@@ -485,8 +485,7 @@
   function resetForm() {
     document.getElementById('success-view').style.display = 'none';
     document.getElementById('form-view').style.display = 'block';
-    ['campus','contact-name','contact-email','use-case','quantity','needed-by','notes','alt-address','alt-phone','ship-contact'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
-    document.querySelectorAll('input[name="device-type"]').forEach(r => r.checked = false);
+    ['campus','contact-name','contact-email','device-type-select','use-case','quantity','needed-by','notes','alt-address','alt-phone','ship-contact'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
     document.getElementById('confirm-check').checked = false;
     document.getElementById('address-preview').textContent = 'Select a campus above to see the address on file.';
     document.getElementById('address-preview').className = 'address-preview empty';
