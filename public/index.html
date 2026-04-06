@@ -175,6 +175,7 @@
           <div class="field">
             <label>Address on file</label>
             <div class="address-preview empty" id="address-preview">Select a campus above to see the address on file.</div>
+            <div class="alert danger" id="error-address" style="margin-top:8px;margin-bottom:0">No address is on file for this campus. Please use "Use a different address" to provide one before submitting.</div>
           </div>
           <div class="field">
             <label>Is this address correct?</label>
@@ -195,6 +196,7 @@
           <div class="field hidden" id="phone-field">
             <label>Phone number on file</label>
             <div class="address-preview empty" id="phone-preview">Select a campus above to see the phone number on file.</div>
+            <div class="alert danger" id="error-phone" style="margin-top:8px;margin-bottom:0">No phone number is on file for this campus. Please use "Update number" to provide one before submitting.</div>
             <div class="addr-toggle" style="margin-top:8px">
               <button type="button" class="addr-btn active" id="btn-use-phone" onclick="setPhoneMode('use')">Correct</button>
               <button type="button" class="addr-btn" id="btn-alt-phone" onclick="setPhoneMode('alt')">Update number</button>
@@ -354,6 +356,8 @@
     phonePreview.className = c && c.phone ? 'address-preview' : 'address-preview empty';
     document.getElementById('ship-contact-field').classList.remove('hidden');
     document.getElementById('phone-field').classList.remove('hidden');
+    document.getElementById('error-address').classList.remove('show');
+    document.getElementById('error-phone').classList.remove('show');
     setPhoneMode('use');
   }
 
@@ -362,6 +366,7 @@
     document.getElementById('btn-use-addr').classList.toggle('active', mode === 'use');
     document.getElementById('btn-alt-addr').classList.toggle('active', mode === 'alt');
     document.getElementById('alt-address-field').classList.toggle('hidden', mode !== 'alt');
+    if (mode === 'alt') document.getElementById('error-address').classList.remove('show');
   }
 
   function setPhoneMode(mode) {
@@ -369,6 +374,7 @@
     document.getElementById('btn-use-phone').classList.toggle('active', mode === 'use');
     document.getElementById('btn-alt-phone').classList.toggle('active', mode === 'alt');
     document.getElementById('alt-phone-field').classList.toggle('hidden', mode !== 'alt');
+    if (mode === 'alt') document.getElementById('error-phone').classList.remove('show');
   }
 
   function onQuantityChange() {
@@ -386,7 +392,36 @@
     if (!document.getElementById('use-case').value) return false;
     if (!document.getElementById('quantity').value || !document.getElementById('needed-by').value) return false;
     if (!document.getElementById('confirm-check').checked) return false;
+
+    // address: must have one on file OR have provided an alternative
+    const hasAddress = campusMap[campus] && campusMap[campus].address;
+    const errAddr = document.getElementById('error-address');
+    if (!hasAddress && addressMode !== 'alt') {
+      errAddr.classList.add('show');
+      setAddressMode('alt');
+      return false;
+    }
+    if (!hasAddress && addressMode === 'alt' && !document.getElementById('alt-address').value.trim()) {
+      errAddr.classList.add('show');
+      return false;
+    }
+    errAddr.classList.remove('show');
     if (addressMode === 'alt' && !document.getElementById('alt-address').value.trim()) return false;
+
+    // phone: must have one on file OR have provided an update
+    const hasPhone = campusMap[campus] && campusMap[campus].phone;
+    const errPhone = document.getElementById('error-phone');
+    if (!hasPhone && phoneMode !== 'alt') {
+      errPhone.classList.add('show');
+      setPhoneMode('alt');
+      return false;
+    }
+    if (!hasPhone && phoneMode === 'alt' && !document.getElementById('alt-phone').value.trim()) {
+      errPhone.classList.add('show');
+      return false;
+    }
+    errPhone.classList.remove('show');
+
     if (q > 10 && (!document.getElementById('hos-name').value.trim() || !document.getElementById('hos-email').value.trim())) return false;
     return true;
   }
