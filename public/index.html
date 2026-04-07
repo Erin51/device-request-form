@@ -359,6 +359,7 @@
     document.getElementById('error-address').classList.remove('show');
     document.getElementById('error-phone').classList.remove('show');
     setPhoneMode('use');
+    onQuantityChange();
   }
 
   function setAddressMode(mode) {
@@ -377,10 +378,14 @@
     if (mode === 'alt') document.getElementById('error-phone').classList.remove('show');
   }
 
+  const HOS_EXEMPT = ['Legacy of Education', 'Roadshows'];
+
   function onQuantityChange() {
     const q = parseInt(document.getElementById('quantity').value) || 0;
-    document.getElementById('hos-section').classList.toggle('hidden', q <= 10);
-    document.getElementById('warn-hos').classList.toggle('show', q > 10);
+    const campus = document.getElementById('campus').value || '';
+    const exempt = HOS_EXEMPT.includes(campus);
+    document.getElementById('hos-section').classList.toggle('hidden', q <= 10 || exempt);
+    document.getElementById('warn-hos').classList.toggle('show', q > 10 && !exempt);
   }
 
   function validate() {
@@ -422,7 +427,7 @@
     }
     errPhone.classList.remove('show');
 
-    if (q > 10 && (!document.getElementById('hos-name').value.trim() || !document.getElementById('hos-email').value.trim())) return false;
+    if (q > 10 && !HOS_EXEMPT.includes(campus) && (!document.getElementById('hos-name').value.trim() || !document.getElementById('hos-email').value.trim())) return false;
     return true;
   }
 
