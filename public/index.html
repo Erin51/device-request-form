@@ -126,6 +126,10 @@
               <input type="email" id="contact-email" placeholder="you@alpha.school" />
             </div>
           </div>
+          <div class="field">
+            <label>Current student enrollment count <span class="req">*</span></label>
+            <input type="number" id="enrollment-count" min="0" placeholder="e.g. 120" />
+          </div>
         </div>
 
         <!-- Device Details -->
@@ -393,6 +397,7 @@
     const q = parseInt(document.getElementById('quantity').value) || 0;
     if (!campus || !document.getElementById('contact-name').value.trim()) return false;
     if (!document.getElementById('contact-email').value.trim()) return false;
+    if (!document.getElementById('enrollment-count').value) return false;
     if (!document.getElementById('device-type-select').value) return false;
     if (!document.getElementById('use-case').value) return false;
     if (!document.getElementById('quantity').value || !document.getElementById('needed-by').value) return false;
@@ -449,6 +454,7 @@
       'Campus name':        campus,
       'Contact name':       document.getElementById('contact-name').value.trim(),
       'Contact email':      document.getElementById('contact-email').value.trim(),
+      'Enrollment count':   parseInt(document.getElementById('enrollment-count').value) || 0,
       'Device type':        deviceType,
       'Use case':           document.getElementById('use-case').value,
       'Quantity':           q,
@@ -490,7 +496,7 @@
   function resetForm() {
     document.getElementById('success-view').style.display = 'none';
     document.getElementById('form-view').style.display = 'block';
-    ['campus','contact-name','contact-email','device-type-select','use-case','quantity','needed-by','notes','alt-address','alt-phone','ship-contact'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+    ['campus','contact-name','contact-email','enrollment-count','device-type-select','use-case','quantity','needed-by','notes','alt-address','alt-phone','ship-contact'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
     document.getElementById('confirm-check').checked = false;
     document.getElementById('address-preview').textContent = 'Select a campus above to see the address on file.';
     document.getElementById('address-preview').className = 'address-preview empty';
