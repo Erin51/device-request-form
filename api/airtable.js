@@ -43,7 +43,7 @@ export default async function handler(req) {
     // ── GET device models ──
     if (action === 'devices') {
       const res = await fetch(
-        `${airtableBase}/tblLb4uhTKUGTF08j?fields[]=Device+Name&fields[]=Notes&fields[]=Active&sort[0][field]=Device+Name&sort[0][direction]=asc`,
+        `${airtableBase}/tblnKmUUhhrMWKlY1?fields[]=Device+Name&fields[]=Notes&fields[]=Active&sort[0][field]=Device+Name&sort[0][direction]=asc`,
         { headers }
       );
       const data = await res.json();
