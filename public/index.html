@@ -80,9 +80,21 @@
   .summary-pill { display: inline-block; padding: 6px 14px; background: var(--bg); border: 0.5px solid var(--border-mid); border-radius: 99px; font-size: 12px; font-family: 'DM Mono', monospace; color: var(--text-secondary); margin-bottom: 1.5rem; }
   .btn-reset { font-size: 13px; font-family: 'DM Sans', sans-serif; color: var(--text-secondary); background: none; border: 0.5px solid var(--border-mid); border-radius: var(--radius-sm); padding: 8px 18px; cursor: pointer; transition: border-color 0.12s; }
   .btn-reset:hover { border-color: var(--accent); color: var(--accent); }
+  .device-line { border: 0.5px solid var(--border); border-radius: var(--radius-sm); padding: 12px 12px 14px; margin-bottom: 10px; background: var(--bg); }
+  .device-line-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+  .device-line-title { font-size: 12px; font-weight: 500; color: var(--text-secondary); }
+  .btn-remove-line { font-size: 12px; font-family: 'DM Sans', sans-serif; color: var(--text-muted); background: none; border: none; cursor: pointer; padding: 2px 4px; }
+  .btn-remove-line:hover { color: var(--danger-text); }
+  .device-line .row-qty { display: grid; grid-template-columns: 1fr 110px; gap: 10px 12px; margin-bottom: 10px; }
+  .device-line .row-qty .field { margin-bottom: 0; }
+  .device-line .field { margin-bottom: 10px; }
+  .device-line .field:last-child { margin-bottom: 0; }
+  .btn-add-line { width: 100%; padding: 9px; font-size: 13px; font-family: 'DM Sans', sans-serif; font-weight: 500; border: 0.5px dashed var(--border-mid); border-radius: var(--radius-sm); background: var(--surface); color: var(--text-secondary); cursor: pointer; transition: border-color 0.12s, color 0.12s; }
+  .btn-add-line:hover { border-color: var(--accent); color: var(--accent); }
   .hidden { display: none !important; }
   @media (max-width: 480px) {
     .row { grid-template-columns: 1fr; }
+    .device-line .row-qty { grid-template-columns: 1fr; }
     .form-footer { flex-direction: column; align-items: stretch; text-align: center; }
     body { padding: 1rem 0.75rem 3rem; }
   }
@@ -135,32 +147,10 @@
         <!-- Device Details -->
         <div class="section">
           <div class="section-title">Device details</div>
-          <div class="field">
-            <label>Device type <span class="req">*</span></label>
-            <select id="device-type-select">
-              <option value="">Select a device…</option>
-            </select>
-          </div>
-          <div class="field">
-            <label>Use case <span class="req">*</span></label>
-            <select id="use-case">
-              <option value="">Select one…</option>
-              <option value="Instructional (in-person)">Instructional (in-person)</option>
-              <option value="Instructional (remote/virtual)">Instructional (remote/virtual)</option>
-              <option value="Administrative">Administrative</option>
-              <option value="Event/roadshow">Event/roadshow</option>
-              <option value="Replacement for damaged/lost devices">Replacement for damaged/lost devices</option>
-              <option value="Testing">Testing</option>
-              <option value="Summer camp">Summer camp</option>
-              <option value="Other">Other</option>
-            </select>
-          </div>
-          <div class="field">
-            <label>Number of devices needed <span class="req">*</span></label>
-            <input type="number" id="quantity" min="1" placeholder="e.g. 12" oninput="onQuantityChange()" />
-            <div class="hint">Ops will verify this against current inventory and enrollment data before ordering.</div>
-          </div>
-          <div class="alert warn" id="warn-hos">Orders of more than 10 devices require Head of School approval. You'll be asked to provide that below.</div>
+          <div id="device-lines"></div>
+          <button type="button" class="btn-add-line" id="btn-add-line" onclick="addDeviceLine()">+ Add another device type</button>
+          <div class="field" style="margin:0"><div class="hint" style="margin-top:8px">Ops will verify quantities against current inventory and enrollment data before ordering.</div></div>
+          <div class="alert warn" id="warn-hos" style="margin-top:1rem">Orders of more than 10 devices in total require Head of School approval. You'll be asked to provide that below.</div>
         </div>
 
         <!-- Timing -->
@@ -215,7 +205,7 @@
         <!-- Head of School (conditional) -->
         <div class="section hidden" id="hos-section">
           <div class="section-title">Head of school approval</div>
-          <div class="alert danger show">Orders of 11 or more devices require Head of School approval before ops can place the order.</div>
+          <div class="alert danger show">Orders of 11 or more devices in total require Head of School approval before ops can place the order.</div>
           <div class="row">
             <div class="field">
               <label>Head of School name <span class="req">*</span></label>
@@ -288,15 +278,86 @@
     { name: 'Other / not sure',   notes: 'Describe in the notes field below' },
   ];
 
-  function renderDeviceOptions(devices) {
-    const sel = document.getElementById('device-type-select');
+  const USE_CASES = [
+    'Instructional (in-person)', 'Instructional (remote/virtual)', 'Administrative', 'Event/roadshow',
+    'Replacement for damaged/lost devices', 'Testing', 'Summer camp', 'Other'
+  ];
+  const MAX_LINES = 10; // Airtable accepts at most 10 records per create request
+  let deviceOptions = FALLBACK_DEVICES;
+
+  function fillDeviceSelect(sel) {
+    const current = sel.value;
     sel.innerHTML = '<option value="">Select a device…</option>';
-    devices.forEach(d => {
+    deviceOptions.forEach(d => {
       const opt = document.createElement('option');
-      opt.value = d.name;
-      opt.textContent = d.name;
+      opt.value = d.name; opt.textContent = d.name;
       sel.appendChild(opt);
     });
+    if (current && deviceOptions.some(d => d.name === current)) sel.value = current;
+  }
+
+  function renderDeviceOptions(devices) {
+    deviceOptions = devices;
+    document.querySelectorAll('.dl-device').forEach(fillDeviceSelect);
+  }
+
+  function addDeviceLine() {
+    const wrap = document.getElementById('device-lines');
+    if (wrap.children.length >= MAX_LINES) return;
+    const line = document.createElement('div');
+    line.className = 'device-line';
+    line.innerHTML = `
+      <div class="device-line-head">
+        <span class="device-line-title"></span>
+        <button type="button" class="btn-remove-line" onclick="removeDeviceLine(this)">Remove</button>
+      </div>
+      <div class="row-qty">
+        <div class="field">
+          <label>Device type <span class="req">*</span></label>
+          <select class="dl-device"></select>
+        </div>
+        <div class="field">
+          <label>Quantity <span class="req">*</span></label>
+          <input type="number" class="dl-qty" min="1" placeholder="e.g. 12" oninput="onQuantityChange()" />
+        </div>
+      </div>
+      <div class="field">
+        <label>Use case <span class="req">*</span></label>
+        <select class="dl-use">
+          <option value="">Select one…</option>
+          ${USE_CASES.map(u => `<option value="${u}">${u}</option>`).join('')}
+        </select>
+      </div>`;
+    wrap.appendChild(line);
+    fillDeviceSelect(line.querySelector('.dl-device'));
+    refreshDeviceLines();
+  }
+
+  function removeDeviceLine(btn) {
+    btn.closest('.device-line').remove();
+    refreshDeviceLines();
+    onQuantityChange();
+  }
+
+  function refreshDeviceLines() {
+    const lines = document.querySelectorAll('.device-line');
+    lines.forEach((l, i) => {
+      l.querySelector('.device-line-title').textContent = lines.length > 1 ? `Device ${i + 1}` : 'Device';
+      l.querySelector('.btn-remove-line').classList.toggle('hidden', lines.length === 1);
+    });
+    document.getElementById('btn-add-line').classList.toggle('hidden', lines.length >= MAX_LINES);
+  }
+
+  function getDeviceLines() {
+    return [...document.querySelectorAll('.device-line')].map(l => ({
+      device: l.querySelector('.dl-device').value,
+      qty: parseInt(l.querySelector('.dl-qty').value) || 0,
+      useCase: l.querySelector('.dl-use').value,
+    }));
+  }
+
+  function totalQuantity() {
+    return getDeviceLines().reduce((s, l) => s + l.qty, 0);
   }
 
   async function loadDeviceModels() {
@@ -385,7 +446,7 @@
   const HOS_EXEMPT = ['Legacy of Education', 'Roadshows'];
 
   function onQuantityChange() {
-    const q = parseInt(document.getElementById('quantity').value) || 0;
+    const q = totalQuantity();
     const campus = document.getElementById('campus').value || '';
     const exempt = HOS_EXEMPT.includes(campus);
     document.getElementById('hos-section').classList.toggle('hidden', q <= 10 || exempt);
@@ -394,13 +455,13 @@
 
   function validate() {
     const campus = document.getElementById('campus').value || (document.getElementById('campus-text-fallback') && document.getElementById('campus-text-fallback').value) || '';
-    const q = parseInt(document.getElementById('quantity').value) || 0;
+    const q = totalQuantity();
     if (!campus || !document.getElementById('contact-name').value.trim()) return false;
     if (!document.getElementById('contact-email').value.trim()) return false;
     if (!document.getElementById('enrollment-count').value) return false;
-    if (!document.getElementById('device-type-select').value) return false;
-    if (!document.getElementById('use-case').value) return false;
-    if (!document.getElementById('quantity').value || !document.getElementById('needed-by').value) return false;
+    const lines = getDeviceLines();
+    if (!lines.length || lines.some(l => !l.device || l.qty < 1 || !l.useCase)) return false;
+    if (!document.getElementById('needed-by').value) return false;
     if (!document.getElementById('confirm-check').checked) return false;
 
     // address: must have one on file OR have provided an alternative
@@ -447,17 +508,17 @@
     document.getElementById('btn-spinner').style.display = 'block';
 
     const campus = document.getElementById('campus').value || (document.getElementById('campus-text-fallback') && document.getElementById('campus-text-fallback').value) || '';
-    const q = parseInt(document.getElementById('quantity').value) || 0;
-    const deviceType = document.getElementById('device-type-select').value;
+    const lines = getDeviceLines();
+    const q = totalQuantity();
+    const notes = document.getElementById('notes').value.trim();
+    const submittedAt = new Date().toISOString();
 
-    const fields = {
+    // Shared fields for every record; each device line becomes its own Airtable record
+    const shared = {
       'Campus name':        campus,
       'Contact name':       document.getElementById('contact-name').value.trim(),
       'Contact email':      document.getElementById('contact-email').value.trim(),
       'Enrollment count':   parseInt(document.getElementById('enrollment-count').value) || 0,
-      'Device type':        deviceType,
-      'Use case':           document.getElementById('use-case').value,
-      'Quantity':           q,
       'Needed by':          document.getElementById('needed-by').value,
       'Default shipping?':  addressMode === 'use' ? 'Yes' : 'No',
       'Shipping address':   addressMode === 'use' ? (campusMap[campus] ? campusMap[campus].address : '') : document.getElementById('alt-address').value.trim(),
@@ -467,16 +528,25 @@
       'Updated Phone':      phoneMode === 'alt' ? document.getElementById('alt-phone').value.trim() : '',
       'HoS name':           document.getElementById('hos-name') ? document.getElementById('hos-name').value.trim() : '',
       'HoS email':          document.getElementById('hos-email') ? document.getElementById('hos-email').value.trim() : '',
-      'Notes':              document.getElementById('notes').value.trim(),
-      'Submitted at':       new Date().toISOString(),
+      'Submitted at':       submittedAt,
       'Status':             'Pending review',
     };
+
+    const lineSummary = lines.map(l => `${l.qty} × ${l.device}`).join(', ');
+    const records = lines.map((l, i) => {
+      let lineNotes = notes;
+      if (lines.length > 1) {
+        const tag = `[Multi-device request, line ${i + 1} of ${lines.length}: ${lineSummary} — ${q} devices total]`;
+        lineNotes = notes ? `${tag}\n\n${notes}` : tag;
+      }
+      return { fields: { ...shared, 'Device type': l.device, 'Use case': l.useCase, 'Quantity': l.qty, 'Notes': lineNotes } };
+    });
 
     try {
       const res = await fetch(`${API}?action=submit`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ fields })
+        body: JSON.stringify({ records })
       });
       const result = await res.json();
       if (!result.ok) throw new Error(JSON.stringify(result.data));
@@ -484,7 +554,7 @@
       document.getElementById('success-view').style.display = 'block';
       const d = new Date(document.getElementById('needed-by').value + 'T12:00:00');
       const ds = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-      document.getElementById('summary-pill').textContent = `${q} ${deviceType} · ${campus} · needed by ${ds}`;
+      document.getElementById('summary-pill').textContent = `${lineSummary} · ${campus} · needed by ${ds}`;
     } catch (e) {
       document.getElementById('airtable-error').classList.add('show');
       btn.disabled = false;
@@ -496,7 +566,9 @@
   function resetForm() {
     document.getElementById('success-view').style.display = 'none';
     document.getElementById('form-view').style.display = 'block';
-    ['campus','contact-name','contact-email','enrollment-count','device-type-select','use-case','quantity','needed-by','notes','alt-address','alt-phone','ship-contact'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+    ['campus','contact-name','contact-email','enrollment-count','needed-by','notes','alt-address','alt-phone','ship-contact','hos-name','hos-email'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+    document.getElementById('device-lines').innerHTML = '';
+    addDeviceLine();
     document.getElementById('confirm-check').checked = false;
     document.getElementById('address-preview').textContent = 'Select a campus above to see the address on file.';
     document.getElementById('address-preview').className = 'address-preview empty';
@@ -511,6 +583,7 @@
     setPhoneMode('use');
   }
 
+  addDeviceLine();
   loadCampuses();
   loadDeviceModels();
 </script>
